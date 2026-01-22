@@ -16,6 +16,7 @@ def home():
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM songs")
     songs = cursor.fetchall()
+    cursor.close()
     return render_template("index.html", songs=songs)
 
 @app.route("/", methods=["GET", "POST"])
@@ -92,4 +93,19 @@ def register():
         return redirect(url_for("login"))
 
     return render_template("register.html")
+
+@app.route("/search")
+def search():
+    query = request.args.get("q")
+
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT * FROM songs WHERE title LIKE %s OR artist LIKE %s",
+        (f"%{query}%", f"%{query}%")
+    )
+    songs = cursor.fetchall()
+    cursor.close()
+
+    return render_template("index.html", songs=songs)
+
 
