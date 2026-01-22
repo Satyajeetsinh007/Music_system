@@ -1,4 +1,5 @@
 import mysql.connector
+import random
 from flask import Flask, render_template,request,flash,redirect,url_for
 
 app = Flask(__name__)
@@ -109,3 +110,14 @@ def api_search():
     return songs  # Flask auto converts to JSON
 
 
+
+
+@app.route("/random")
+def random_song():
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM songs")
+    songs = cursor.fetchall()
+    cursor.close()
+
+    song = random.choice(songs)
+    return redirect(url_for("play_song", song_id=song["id"]))

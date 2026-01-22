@@ -119,6 +119,7 @@ h2 {
 }
 .search-container {
   width: 350px;
+  position: relative;
 }
 
 .search-results {
