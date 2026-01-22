@@ -1,0 +1,95 @@
+import mysql.connector
+from flask import Flask, render_template,request,flash,redirect,url_for
+
+app = Flask(__name__)
+app.secret_key = "my-secret-key"
+
+db = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="",      # default XAMPP password is empty
+    database="music_db"
+)
+
+@app.route("/mainapp")
+def home():
+    cursor = db.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM songs")
+    songs = cursor.fetchall()
+    return render_template("index.html", songs=songs)
+
+@app.route("/", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+        cursor = db.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT * FROM users WHERE email=%s AND password=%s",
+            (email, password)
+        )
+        user = cursor.fetchone()
+
+        cursor.close()
+
+        if user:
+            # login successful
+            return redirect(url_for("home"))
+        else:
+            flash("Invalid email or password")
+            return redirect(url_for("login"))
+    return render_template("login.html")
+
+
+@app.route("/song/<int:song_id>")
+def play_song(song_id):
+    cursor = db.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM songs WHERE id=%s", (song_id,))
+    song = cursor.fetchone()
+
+    cursor.execute(
+        "SELECT * FROM songs WHERE genre=%s AND id!=%s",
+        (song["genre"], song_id)
+    )
+    related = cursor.fetchall()
+
+    return render_template("song.html", song=song, related_songs=related)
+
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        email = request.form["email"]
+        password = request.form["password"]
+
+        cursor = db.cursor(dictionary=True)
+
+        # 1. Check if user already exists
+        cursor.execute(
+            "SELECT * FROM users WHERE email=%s",
+            (email,)
+        )
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            flash("Email already registered!")
+            return redirect(url_for("register"))
+
+        # 2. Insert new user
+        cursor.execute(
+            "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
+            (username, email, password)
+        )
+        db.commit()
+
+        cursor.close()
+
+        # 3. Redirect to login page
+        return redirect(url_for("login"))
+
+    return render_template("register.html")
+

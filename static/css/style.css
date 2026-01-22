@@ -1,0 +1,62 @@
+body {
+  padding-top: 55px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Hero */
+.hero {
+  height: 90vh;
+  background: linear-gradient(to right, #121212, #1db954);
+  color: white;
+}
+
+/* Music Cards */
+.music-card {
+  border: none;
+  transition: transform 0.3s;
+}
+
+.music-card:hover {
+  transform: scale(1.05);
+}
+
+/* Playlist Box */
+.playlist-box {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  transition: 0.3s;
+}
+
+.playlist-box:hover {
+  background: #1db954;
+  color: white;
+}
+
+.cards{
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.song-poster {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  object-fit: cover;
+}
+
+
+@media(min-width:992px){
+  .song-play-poster{
+    height: 200px;
+    width: 200px;
+  }
+}
+/* .song-play-poster{
+  height: 70%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+} */
+
+
