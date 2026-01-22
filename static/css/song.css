@@ -2,24 +2,37 @@
   margin: 0;
   padding: 0;
 }
+
+body{
+  background-color: #0d0d0d;
+  color: white;
+}
+
+/* Main Player Card */
 .f1{
     display: flex;
     flex-direction: column;
     justify-content: start;
-    background-color: cyan;
+    background: linear-gradient(135deg, #111, #1a1a1a);
     border-radius: 15px;
     height: 300px;
-    /* border-radius: 9999px; */
+    padding: 20px;
+    box-shadow: 0 0 25px rgba(0,0,0,0.8);
 }
+
+/* Song Image */
 .song-play-poster {
   position: relative;
   left: 10px;
-  width: 200px;          /* mobile default */
+  width: 200px;
   aspect-ratio: 1 / 1;
   display: block;
   object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.7);
 }
 
+/* Player bar */
 .player {
   margin-top: 15px;
   width: 350px;
@@ -29,9 +42,10 @@
   display: none !important;
 }
 
+/* Play Button */
 #playBtn {
-  background: #2ecc71;
-  color: white;
+  background: #1db954;
+  color: black;
   border: none;
   font-size: 18px;
   width: 45px;
@@ -40,34 +54,39 @@
   cursor: pointer;
 }
 
+/* Progress bar */
 #progress {
   width: 100%;
-  accent-color: #2ecc71;
+  accent-color: #1db954;
   cursor: pointer;
 }
 
-
+/* Layout */
 .img-text {
   width: fit-content;
   height: 260px;
 }
 
+/* Text */
 .song-meta h2 {
   margin: 0;
   font-size: 1.4rem;
+  color: white;
 }
 
 .song-meta p {
   margin: 0;
   font-size: 0.95rem;
+  color: #aaaaaa;
 }
 
+/* Image wrapper */
 .image-wrapper {
   position: relative;
-  display: inline-block;   /* 🔥 THIS FIXES IT */
+  display: inline-block;
 }
 
-
+/* Overlay play */
 .play-overlay {
   position: absolute;
   bottom: 12px;
@@ -78,8 +97,8 @@
   border-radius: 50%;
   border: none;
 
-  background: #2ecc71;
-  color: white;
+  background: #1db954;
+  color: black;
   font-size: 18px;
 
   display: flex;
@@ -97,5 +116,3 @@
   opacity: 1;
   transform: translateY(0);
 }
-
-

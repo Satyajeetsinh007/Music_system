@@ -1,62 +1,119 @@
 body {
   padding-top: 55px;
   font-family: 'Segoe UI', sans-serif;
+  background-color: #0d0d0d;
+  color: white;
 }
 
 /* Hero */
 .hero {
   height: 90vh;
-  background: linear-gradient(to right, #121212, #1db954);
+  background: radial-gradient(circle at top, #1a1a1a, #000);
   color: white;
 }
 
-/* Music Cards */
+/* Section title */
+h2 {
+  font-weight: 600;
+}
+
+/* Music Card */
 .music-card {
-  border: none;
-  transition: transform 0.3s;
+  background: #111;
+  border-radius: 16px;
+  overflow: hidden;
+  color: white;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  transition: 0.3s ease;
+  position: relative;
 }
 
 .music-card:hover {
-  transform: scale(1.05);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.9);
 }
 
-/* Playlist Box */
+/* Poster */
+.song-poster {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+/* Card body */
+.music-card .card-body {
+  padding: 12px;
+}
+
+.music-card h5 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.music-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+/* Play button overlay */
+.play-btn {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: #1db954;
+  color: black;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: 0.25s ease;
+}
+
+.music-card:hover .play-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Playlist */
 .playlist-box {
-  background: white;
+  background: #111;
   padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.6);
   transition: 0.3s;
 }
 
 .playlist-box:hover {
   background: #1db954;
+  color: black;
+}
+
+/* Navbar search */
+.search-input {
+  width: 350px;
+  border-radius: 20px;
+  border: none;
+  padding: 8px 15px;
+  background: #1a1a1a;
   color: white;
 }
 
-.cards{
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+.search-input::placeholder {
+  color: #aaa;
 }
 
-.song-poster {
-  aspect-ratio: 1 / 1;
-  width: 100%;
-  object-fit: cover;
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #1db954;
+  background: #111;
+  color: white;
 }
-
-
-@media(min-width:992px){
-  .song-play-poster{
-    height: 200px;
-    width: 200px;
-  }
-}
-/* .song-play-poster{
-  height: 70%;
-  aspect-ratio: 1/1;
-  object-fit: cover;
-} */
-
-
