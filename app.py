@@ -94,18 +94,18 @@ def register():
 
     return render_template("register.html")
 
-@app.route("/search")
-def search():
+@app.route("/api/search")
+def api_search():
     query = request.args.get("q")
 
     cursor = db.cursor(dictionary=True)
     cursor.execute(
-        "SELECT * FROM songs WHERE title LIKE %s OR artist LIKE %s",
+        "SELECT id, title, artist, image FROM songs  WHERE title LIKE %s OR artist LIKE %s LIMIT 5",
         (f"%{query}%", f"%{query}%")
     )
     songs = cursor.fetchall()
     cursor.close()
 
-    return render_template("index.html", songs=songs)
+    return songs  # Flask auto converts to JSON
 
 

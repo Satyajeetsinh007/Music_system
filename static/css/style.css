@@ -117,3 +117,41 @@ h2 {
   background: #111;
   color: white;
 }
+.search-container {
+  width: 350px;
+}
+
+.search-results {
+  position: absolute;
+  top: 45px;
+  width: 100%;
+  background: #111;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  z-index: 999;
+  display: none;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  color: white;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.search-item:hover {
+  background: #1db954;
+  color: black;
+}
+
+.search-item img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 5px;
+}
