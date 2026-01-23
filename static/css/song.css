@@ -116,3 +116,13 @@ body{
   opacity: 1;
   transform: translateY(0);
 }
+
+.heart {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+
+.heart.liked{
+  color: red;
+}

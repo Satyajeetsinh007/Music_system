@@ -46,10 +46,18 @@ def login():
 
 @app.route("/song/<int:song_id>")
 def play_song(song_id):
+    user_id = 1  # for now
+
     cursor = db.cursor(dictionary=True)
 
     cursor.execute("SELECT * FROM songs WHERE id=%s", (song_id,))
     song = cursor.fetchone()
+
+    cursor.execute(
+        "SELECT * FROM liked_songs WHERE user_id=%s AND song_id=%s",
+        (user_id, song_id)
+    )
+    liked = cursor.fetchone()  # None or row
 
     cursor.execute(
         "SELECT * FROM songs WHERE genre=%s AND id!=%s",
@@ -57,7 +65,7 @@ def play_song(song_id):
     )
     related = cursor.fetchall()
 
-    return render_template("song.html", song=song, related_songs=related)
+    return render_template("song.html", song=song, related_songs=related,liked=liked)
 
 
 
@@ -121,3 +129,36 @@ def random_song():
 
     song = random.choice(songs)
     return redirect(url_for("play_song", song_id=song["id"]))
+
+
+@app.route("/like/<int:song_id>")
+def like_song(song_id):
+    user_id = 1  # for now
+
+    cursor = db.cursor(dictionary=True)
+
+    # check if already liked
+    cursor.execute(
+        "SELECT * FROM liked_songs WHERE user_id=%s AND song_id=%s",
+        (user_id, song_id)
+    )
+    existing = cursor.fetchone()
+
+    if existing:
+        # already liked → unlike
+        cursor.execute(
+            "DELETE FROM liked_songs WHERE user_id=%s AND song_id=%s",
+            (user_id, song_id)
+        )
+    else:
+        # not liked → like
+        cursor.execute(
+            "INSERT INTO liked_songs (user_id, song_id) VALUES (%s, %s)",
+            (user_id, song_id)
+        )
+
+    db.commit()
+    cursor.close()
+
+    return {"status": "ok"}
+

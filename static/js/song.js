@@ -5,6 +5,7 @@ const playerBar = document.getElementById("playerBar");
 const imageWrapper = document.getElementById("imageWrapper");
 let song_time=document.getElementById("song-time");
 let song_length=document.getElementById("song_length")
+let heart = document.querySelector(".heart");
 
 function togglePlay() {
   if (audio.paused) {
@@ -44,4 +45,14 @@ audio.addEventListener("timeupdate", () => {
 progress.addEventListener("input", (e) => {
   e.stopPropagation()
   audio.currentTime = (progress.value / 100) * audio.duration;
+});
+
+
+heart.addEventListener("click", async (e) => {
+  e.stopPropagation();
+  heart.classList.toggle("liked")
+  const songId = heart.dataset.id;
+
+  await fetch(`/like/${songId}`);
+
 });
