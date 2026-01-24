@@ -9,59 +9,67 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
-<div class="container mt-5">
-    <!-- Main Song Player -->
-    <div class="f1">
-      <div class="img-text d-flex align-items-end gap-3">
+<div class="app-layout">
+  {% include "sidebar.html" %}
+    <div class="main-content">
+      <button id="toggleSidebar" class="btn btn-outline-light position-absolute top-0 end-0">
+      ❤️
+      </button>
+      <div class="container mt-5">
+        <!-- Main Song Player -->
+        <div class="f1">
+          <div class="img-text d-flex align-items-end gap-3">
 
-        <div class="image-wrapper" id="imageWrapper">
-          <img src="{{url_for('static',filename='images/'+ song.image)}}"
-              class="song-play-poster" id="songImage">
+            <div class="image-wrapper" id="imageWrapper">
+              <img src="{{url_for('static',filename='images/'+ song.image)}}"
+                  class="song-play-poster" id="songImage">
 
-          <button class="play-overlay" id="playBtn">▶</button>
-        </div>
+              <button class="play-overlay" id="playBtn">▶</button>
+            </div>
 
-        <div class="song-meta">
-          <h2>{{ song.title }}
-            <i class="fa-solid fa-heart heart 
-              {% if liked %} liked {% endif %}" 
-              data-id="{{ song.id }}">
-            </i>
-          </h2>
-          <p>{{ song.artist }}</p>
-        </div>
+            <div class="song-meta">
+              <h2>{{ song.title }}
+                <i class="fa-solid fa-heart heart 
+                  {% if liked %} liked {% endif %}" 
+                  data-id="{{ song.id }}">
+                </i>
+              </h2>
+              <p>{{ song.artist }}</p>
+            </div>
 
-      </div>
-
-      <audio id="audio">
-        <source src="{{ url_for('static', filename='songs/' + song.file) }}">
-      </audio>
-
-      <div class="player hidden d-flex flex-column" id="playerBar">
-        <input type="range" id="progress" value="0">
-        <div class="d-flex justify-content-between">
-          <span id="song-time">0:00</span>
-          <span id="song_length"></span>
-        </div>
-        
-      </div>
-
-
-    </div>
-
-    <!-- Related Songs -->
-    <div>
-      <h5>Related Songs</h5>
-
-      {% for s in related_songs %}
-        <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-          <div>
-            <strong>{{ s.title }}</strong><br>
-            <small>{{ s.artist }}</small>
           </div>
-          <a href="/song/{{ s.id }}" class="btn btn-sm btn-outline-success">▶</a>
+
+          <audio id="audio">
+            <source src="{{ url_for('static', filename='songs/' + song.file) }}">
+          </audio>
+
+          <div class="player hidden d-flex flex-column" id="playerBar">
+            <input type="range" id="progress" value="0">
+            <div class="d-flex justify-content-between">
+              <span id="song-time">0:00</span>
+              <span id="song_length"></span>
+            </div>
+            
+          </div>
+
+
         </div>
-      {% endfor %}
+
+        <!-- Related Songs -->
+        <div>
+          <h5>Related Songs</h5>
+
+          {% for s in related_songs %}
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+              <div>
+                <strong>{{ s.title }}</strong><br>
+                <small>{{ s.artist }}</small>
+              </div>
+              <a href="/song/{{ s.id }}" class="btn btn-sm btn-outline-success">▶</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
 </div>
 <script src="../static/js/song.js"></script>

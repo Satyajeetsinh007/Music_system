@@ -1,0 +1,17 @@
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h4>❤️ Liked Songs</h4>
+        <button id="closeSidebar" class="close-btn">✕</button>
+    </div>
+  
+
+    <p class="empty">No liked songs</p>
+
+  {% for s in liked_songs %}
+    <a href="/song/{{ s.id }}"  class="sidebar-song" data-id="{{ s.id }}">
+
+      <img src="{{ url_for('static', filename='images/' + s.image) }}">
+      <span>{{ s.title }}</span>
+    </a>
+  {% endfor %}
+</div>

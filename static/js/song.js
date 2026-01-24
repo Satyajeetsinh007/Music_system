@@ -6,7 +6,11 @@ const imageWrapper = document.getElementById("imageWrapper");
 let song_time=document.getElementById("song-time");
 let song_length=document.getElementById("song_length")
 let heart = document.querySelector(".heart");
+const closeBtn = document.getElementById("closeSidebar");
+let empty=document.querySelector(".empty")
 
+
+document.addEventListener("DOMContentLoaded", updateEmptyState);
 function togglePlay() {
   if (audio.paused) {
     audio.play();
@@ -53,6 +57,61 @@ heart.addEventListener("click", async (e) => {
   heart.classList.toggle("liked")
   const songId = heart.dataset.id;
 
-  await fetch(`/like/${songId}`);
+  const res = await fetch(`/like/${songId}`);
+  const data = await res.json();
+
+  updateSidebar(data);
 
 });
+
+const toggleBtn = document.getElementById("toggleSidebar");
+const sidebar = document.querySelector(".sidebar");
+
+toggleBtn.addEventListener("click", () => {
+  sidebar.classList.toggle("open");
+});
+
+function updateSidebar(data) {
+  const sidebar = document.querySelector(".sidebar");
+
+  if (data.status === "liked") {
+    // Prevent duplicates
+    if (sidebar.querySelector(`[data-id="${data.song.id}"]`)) return;
+
+    const song = data.song;
+    const a = document.createElement("a");
+    a.href = `/song/${song.id}`;
+    a.className = "sidebar-song";
+    a.dataset.id = song.id;
+
+    a.innerHTML = `
+      <img src="/static/images/${song.image}">
+      <span>${song.title}</span>
+    `;
+
+    sidebar.appendChild(a);
+  }
+
+  if (data.status === "unliked") {
+    const el = sidebar.querySelector(`[data-id="${data.song_id}"]`);
+    if (el) el.remove();
+  }
+  updateEmptyState();
+}
+
+
+closeBtn.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+  });
+  
+function updateEmptyState() {
+  const sidebar = document.querySelector(".sidebar");
+  const items = sidebar.querySelectorAll(".sidebar-song");
+  const empty = sidebar.querySelector(".empty");
+
+  if (items.length === 0) {
+    empty.style.display = "block";
+  } else {
+    empty.style.display = "none";
+  }
+}

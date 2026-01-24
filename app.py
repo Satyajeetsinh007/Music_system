@@ -1,6 +1,7 @@
 import mysql.connector
 import random
 from flask import Flask, render_template,request,flash,redirect,url_for
+from flask import session
 
 app = Flask(__name__)
 app.secret_key = "my-secret-key"
@@ -14,11 +15,34 @@ db = mysql.connector.connect(
 
 @app.route("/mainapp")
 def home():
+    if "user_id" not in session:
+        return {"status": "error", "message": "Not logged in"}
+
+    user_id = session["user_id"]
+
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM songs")
     songs = cursor.fetchall()
+    if "user_id" not in session:  #doubt-->userid??
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+
+    cursor.execute("""
+        SELECT songs.*
+        FROM liked_songs
+        JOIN songs ON liked_songs.song_id = songs.id
+        WHERE liked_songs.user_id = %s
+    """, (user_id,))
+    liked_songs = cursor.fetchall()
+
     cursor.close()
-    return render_template("index.html", songs=songs)
+
+    return render_template(
+        "index.html",
+        songs=songs,
+        liked_songs=liked_songs
+    )
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -37,6 +61,8 @@ def login():
 
         if user:
             # login successful
+            session["user_id"] = user["id"]   # ⭐ store in session
+            session["username"] = user["username"]
             return redirect(url_for("home"))
         else:
             flash("Invalid email or password")
@@ -46,7 +72,9 @@ def login():
 
 @app.route("/song/<int:song_id>")
 def play_song(song_id):
-    user_id = 1  # for now
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    user_id = session["user_id"]
 
     cursor = db.cursor(dictionary=True)
 
@@ -59,13 +87,21 @@ def play_song(song_id):
     )
     liked = cursor.fetchone()  # None or row
 
+    cursor.execute("""
+        SELECT songs.*
+        FROM liked_songs
+        JOIN songs ON liked_songs.song_id = songs.id
+        WHERE liked_songs.user_id = %s
+    """, (user_id,))
+    liked_songs = cursor.fetchall()
+
     cursor.execute(
         "SELECT * FROM songs WHERE genre=%s AND id!=%s",
         (song["genre"], song_id)
     )
     related = cursor.fetchall()
 
-    return render_template("song.html", song=song, related_songs=related,liked=liked)
+    return render_template("song.html", song=song, related_songs=related,liked=liked,liked_songs=liked_songs)
 
 
 
@@ -133,11 +169,13 @@ def random_song():
 
 @app.route("/like/<int:song_id>")
 def like_song(song_id):
-    user_id = 1  # for now
 
+    if "user_id" not in session:
+        return {"status": "error", "message": "Not logged in"}
+
+    user_id = session["user_id"]
     cursor = db.cursor(dictionary=True)
 
-    # check if already liked
     cursor.execute(
         "SELECT * FROM liked_songs WHERE user_id=%s AND song_id=%s",
         (user_id, song_id)
@@ -150,6 +188,14 @@ def like_song(song_id):
             "DELETE FROM liked_songs WHERE user_id=%s AND song_id=%s",
             (user_id, song_id)
         )
+        db.commit()
+        cursor.close()
+
+        return {
+            "status": "unliked",
+            "song_id": song_id
+        }
+
     else:
         # not liked → like
         cursor.execute(
@@ -157,8 +203,18 @@ def like_song(song_id):
             (user_id, song_id)
         )
 
-    db.commit()
-    cursor.close()
+        cursor.execute("SELECT * FROM songs WHERE id=%s", (song_id,))
+        song = cursor.fetchone()
 
-    return {"status": "ok"}
+        db.commit()
+        cursor.close()
 
+        return {
+            "status": "liked",
+            "song": song
+        }
+    
+@app.route("/logout")
+def logout():
+    session.clear()   # removes user_id, username, everything
+    return redirect(url_for("login"))

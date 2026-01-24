@@ -156,3 +156,93 @@ h2 {
   object-fit: cover;
   border-radius: 5px;
 }
+.app-layout {
+  display: flex;
+}
+
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  background: #0f0f0f;
+  padding: 20px;
+  position: fixed;
+  right: 0;          /* <-- right side */
+  top: 0;
+  border-left: 1px solid #222;
+  transform: translateX(100%); /* hidden by default */
+  transition: 0.3s ease;
+  z-index: 2000;
+}
+
+.sidebar-song img {
+  width: 42px;          /* ✅ small poster */
+  height: 42px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.sidebar-song span {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-song:hover {
+  color: #1db954;
+}
+
+.main-content {
+  width: 100%;
+  padding: 20px;
+}
+
+.sidebar h4 {
+  color: white;
+  margin-bottom: 15px;
+}
+
+.sidebar-song {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #aaa;
+  text-decoration: none;
+  padding: 8px 0;
+  transition: 0.2s;
+}
+
+
+.sidebar-song:hover {
+  color: #1db954;
+}
+
+.empty {
+  color: #555;
+  font-size: 14px;
+  display: none;
+}
+.sidebar.open {
+  transform: translateX(0); /* visible */
+}
+
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  color: white;
+}
