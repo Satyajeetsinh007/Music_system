@@ -10,7 +10,6 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="../static/css/style.css">
-
 </head>
 <body>
   <div class="app-layout">
@@ -55,8 +54,12 @@
     <a href="/random" class="btn btn-success btn-lg"> Start Listening</a>
   </div>
 </section>
+
+<hr class="section-divider">
+
 <!-- Music Section -->
-<section class="container my-5">
+<section class="trending-section py-5 position-relative">
+  <div class="container">
   {% if songs|length == 0 %}
     <p class="text-muted">No songs found.</p>
   {% endif %}
@@ -79,9 +82,14 @@
               <p>{{ song.artist }}</p>
             </div>
 
-            <a href="/song/{{ song.id }}" class="play-btn">
-              ▶
-            </a>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <a href="/song/{{ song.id }}" class="btn btn-success btn-sm rounded-pill px-3">
+                ▶ Play
+              </a>
+              <button class="btn btn-outline-light btn-sm rounded-circle" onclick="openAddToPlaylistModal('{{ song.id }}')" title="Add to Playlist">
+                ➕
+              </button>
+            </div>
           </div>
 
 
@@ -89,44 +97,92 @@
       {% endfor %}
   </div>
 </section>
+
+<hr class="section-divider">
+
 <!-- Playlist Section -->
-<section class="bg-light py-5">
+<section class="playlist-section py-5 position-relative">
   <div class="container">
     <h2 class="fw-bold mb-4">Your Playlists</h2>
 
     <div class="row g-4">
-      <div class="col-md-4">
-        <div class="playlist-box">
-          <h5>Workout Mix</h5>
-          <p>20 Songs</p>
+      {% if playlists %}
+        {% for p in playlists %}
+        <div class="col-md-3 col-sm-6">
+          <a href="/playlist/{{ p.id }}" class="text-decoration-none text-white">
+            <div class="playlist-box p-3 rounded shadow-sm h-100 transition-hover">
+              <h5 class="fw-bold mb-1">{{ p.name }}</h5>
+              <p class="small mb-0">View Playlist ➜</p>
+            </div>
+          </a>
         </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="playlist-box">
-          <h5>Chill Vibes</h5>
-          <p>15 Songs</p>
+        {% endfor %}
+      {% else %}
+        <div class="col-12">
+            <p class="text-muted">You haven't created any playlists yet.</p>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createPlaylistModal">Create One</button>
         </div>
-      </div>
-
-      <div class="col-md-4">
-        <div class="playlist-box">
-          <h5>Focus Music</h5>
-          <p>30 Songs</p>
-        </div>
-      </div>
+      {% endif %}
     </div>
   </div>
 </section>
-
-<!-- Footer -->
-<footer class="bg-dark text-white text-center py-3">
-  <p class="mb-0">© 2026 Musicify | Online Music System</p>
-</footer>
     </div>
   </div>
 
 
+
+
+<!-- Add to Playlist Modal -->
+<div class="modal fade text-dark" id="addToPlaylistModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add to Playlist</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Select a playlist to add this song to:</p>
+        <input type="hidden" id="modalSongId">
+        <div class="list-group">
+          {% for p in playlists %}
+            <button type="button" class="list-group-item list-group-item-action" onclick="addToPlaylist('{{ p.id }}')">
+              {{ p.name }}
+            </button>
+          {% endfor %}
+        </div>
+        {% if not playlists %}
+            <p class="text-danger">No playlists found. Create one first!</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openAddToPlaylistModal(songId) {
+    document.getElementById('modalSongId').value = songId;
+    var modal = new bootstrap.Modal(document.getElementById('addToPlaylistModal'));
+    modal.show();
+}
+
+function addToPlaylist(playlistId) {
+    var songId = document.getElementById('modalSongId').value;
+    
+    fetch(`/add_to_playlist/${playlistId}/${songId}?format=json`, { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        // Close modal
+        var modalEl = document.getElementById('addToPlaylistModal');
+        var modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert("An error occurred");
+    });
+}
+</script>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

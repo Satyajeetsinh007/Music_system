@@ -36,12 +36,16 @@ def home():
     """, (user_id,))
     liked_songs = cursor.fetchall()
 
+    cursor.execute("SELECT * FROM playlists WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
+    playlists = cursor.fetchall()
+
     cursor.close()
 
     return render_template(
         "index.html",
         songs=songs,
-        liked_songs=liked_songs
+        liked_songs=liked_songs,
+        playlists=playlists
     )
 
 @app.route("/", methods=["GET", "POST"])
@@ -101,7 +105,10 @@ def play_song(song_id):
     )
     related = cursor.fetchall()
 
-    return render_template("song.html", song=song, related_songs=related,liked=liked,liked_songs=liked_songs)
+    cursor.execute("SELECT * FROM playlists WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
+    playlists = cursor.fetchall()
+
+    return render_template("song.html", song=song, related_songs=related, liked=liked, liked_songs=liked_songs, playlists=playlists)
 
 
 
@@ -214,6 +221,143 @@ def like_song(song_id):
             "song": song
         }
     
+@app.route("/create_playlist", methods=["POST"])
+def create_playlist():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    
+    user_id = session["user_id"]
+    name = request.form.get("name")
+    
+    if name:
+        cursor = db.cursor()
+        cursor.execute("INSERT INTO playlists (user_id, name) VALUES (%s, %s)", (user_id, name))
+        playlist_id = cursor.lastrowid
+        db.commit()
+        cursor.close()
+        flash("Playlist created!")
+        return redirect(url_for("view_playlist", playlist_id=playlist_id))
+        
+    return redirect(url_for("home"))
+
+@app.route("/playlist/<int:playlist_id>")
+def view_playlist(playlist_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+        
+    user_id = session["user_id"]
+    cursor = db.cursor(dictionary=True)
+    
+    # Check ownership
+    cursor.execute("SELECT * FROM playlists WHERE id=%s AND user_id=%s", (playlist_id, user_id))
+    playlist = cursor.fetchone()
+    
+    if not playlist:
+        cursor.close()
+        return redirect(url_for("home"))
+        
+    # Get songs
+    cursor.execute("""
+        SELECT songs.*, playlist_songs.added_at, playlist_songs.id as link_id
+        FROM playlist_songs
+        JOIN songs ON playlist_songs.song_id = songs.id
+        WHERE playlist_songs.playlist_id = %s
+        ORDER BY playlist_songs.added_at DESC
+    """, (playlist_id,))
+    songs = cursor.fetchall()
+    
+    # Get all liked songs for sidebar consistency (optional, or we can just fetch all liked songs again)
+    # The user asked for "live sidebar updated via fetch + JS", but sidebar usually needs initial state.
+    # We'll just fetch liked songs for the layout if needed, but since sidebar is included, we should pass it.
+    cursor.execute("""
+        SELECT songs.*
+        FROM liked_songs
+        JOIN songs ON liked_songs.song_id = songs.id
+        WHERE liked_songs.user_id = %s
+    """, (user_id,))
+    liked_songs = cursor.fetchall()
+    
+    # Also fetch playlists for the sidebar
+    cursor.execute("SELECT * FROM playlists WHERE user_id=%s ORDER BY created_at DESC", (user_id,))
+    playlists = cursor.fetchall()
+
+    cursor.close()
+    
+    return render_template(
+        "playlist.html", 
+        playlist=playlist, 
+        songs=songs, 
+        liked_songs=liked_songs,
+        playlists=playlists
+    )
+
+@app.route("/add_to_playlist/<int:playlist_id>/<int:song_id>", methods=["POST"])
+def add_to_playlist(playlist_id, song_id):
+    if "user_id" not in session:
+        return {"status": "error", "message": "Login required"}
+        
+    user_id = session["user_id"]
+    cursor = db.cursor(dictionary=True)
+    
+    # Verify ownership
+    cursor.execute("SELECT id FROM playlists WHERE id=%s AND user_id=%s", (playlist_id, user_id))
+    if not cursor.fetchone():
+        cursor.close()
+        return {"status": "error", "message": "Invalid playlist"}
+        
+    try:
+        cursor.execute("INSERT INTO playlist_songs (playlist_id, song_id) VALUES (%s, %s)", (playlist_id, song_id))
+        db.commit()
+        status = "success"
+        message = "Song added to playlist"
+    except mysql.connector.Error as err:
+        if err.errno == 1062: # Duplicate entry
+            status = "info"
+            message = "Song already in playlist"
+        else:
+            status = "error"
+            message = str(err)
+            
+    cursor.close()
+    
+    # Check if request is AJAX
+    if request.is_json or request.args.get('format') == 'json':
+        return {"status": status, "message": message}
+    
+    flash(message)
+    return redirect(url_for("home"))
+
+@app.route("/remove_from_playlist/<int:playlist_id>/<int:song_id>", methods=["POST"])
+def remove_from_playlist(playlist_id, song_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+        
+    user_id = session["user_id"]
+    cursor = db.cursor()
+    
+    # Verify ownership involves the playlist
+    cursor.execute("SELECT id FROM playlists WHERE id=%s AND user_id=%s", (playlist_id, user_id))
+    if cursor.fetchone():
+        cursor.execute("DELETE FROM playlist_songs WHERE playlist_id=%s AND song_id=%s", (playlist_id, song_id))
+        db.commit()
+        
+    cursor.close()
+    return redirect(url_for("view_playlist", playlist_id=playlist_id))
+
+@app.route("/delete_playlist/<int:playlist_id>", methods=["POST"])
+def delete_playlist(playlist_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+        
+    user_id = session["user_id"]
+    cursor = db.cursor()
+    
+    cursor.execute("DELETE FROM playlists WHERE id=%s AND user_id=%s", (playlist_id, user_id))
+    db.commit()
+    cursor.close()
+    
+    return redirect(url_for("home"))
+
 @app.route("/logout")
 def logout():
     session.clear()   # removes user_id, username, everything

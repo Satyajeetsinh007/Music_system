@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ playlist.name }} | Musicify</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    {% include "sidebar.html" %}
+
+    <div class="main-content">
+      <!-- Navbar -->
+      <nav class="navbar navbar-dark bg-dark fixed-top">
+        <div class="container-fluid d-flex align-items-center">
+          <a class="navbar-brand fw-bold" href="/mainapp">🎵 Musicify</a>
+          <!-- Right -->
+          <a href="/logout" class="btn btn-outline-light ms-auto">Logout</a>
+        </div>
+      </nav>
+
+      <!-- Playlist Header -->
+      <section class="hero d-flex align-items-center mt-0 position-relative" style="height: 40vh; min-height: 300px;">
+        <button id="toggleSidebar" class="btn btn-outline-light position-absolute top-0 end-0">❤️</button>
+        <div class="container">
+          <span class="badge bg-primary mb-2">Playlist</span>
+          <h1 class="fw-bold display-4">{{ playlist.name }}</h1>
+          <p class="lead">{{ songs|length }} Songs</p>
+          
+          <form action="/delete_playlist/{{ playlist.id }}" method="POST" onsubmit="return confirm('Delete this playlist?')">
+            <button type="submit" class="btn btn-danger btn-sm mt-3">Delete Playlist</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Songs List -->
+      <section class="container my-5">
+        {% if songs %}
+          <div class="list-group">
+            {% for song in songs %}
+            <div class="list-group-item d-flex justify-content-between align-items-center bg-dark text-white border-secondary mb-2 rounded p-3">
+              <div class="d-flex align-items-center gap-3">
+                 <img src="{{ url_for('static', filename='images/' + song.image) }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+                 <div>
+                    <h5 class="mb-0">{{ song.title }}</h5>
+                    <small class="text-muted">{{ song.artist }}</small>
+                 </div>
+              </div>
+              
+              <div class="d-flex gap-2">
+                 <button onclick="playSongAtIndex({{ loop.index0 }})" class="btn btn-success btn-sm rounded-pill">▶ Play</button>
+                 <form action="/remove_from_playlist/{{ playlist.id }}/{{ song.id }}" method="POST" style="display:inline;">
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle">✕</button>
+                 </form>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5">
+            <h3>It's empty here!</h3>
+            <p class="text-muted">Go add some songs to this playlist.</p>
+            <a href="/mainapp" class="btn btn-outline-success">Browse Songs</a>
+          </div>
+        {% endif %}
+      </section>
+
+
+    </div>
+  </div>
+
+      <!-- Player Bar (Fixed Bottom) -->
+      <div id="player-bar" class="player-bar d-flex align-items-center justify-content-between px-4 py-2 bg-dark border-top border-secondary fixed-bottom" style="display: none !important;">
+        <!-- Song Info -->
+        <div class="d-flex align-items-center gap-3" style="width: 30%;">
+            <img id="player-image" src="" alt="Album Art" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+            <div class="text-truncate">
+                <h6 id="player-title" class="mb-0 text-white">Select a song</h6>
+                <small id="player-artist" class="text-muted">Artist</small>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="d-flex flex-column align-items-center" style="width: 40%;">
+            <div class="d-flex align-items-center gap-3 mb-1">
+                <button class="btn btn-outline-light btn-sm rounded-circle" onclick="prevSong()">⏮</button>
+                <button id="play-pause-btn" class="btn btn-light btn-sm rounded-circle" onclick="togglePlay()" style="width: 40px; height: 40px;">▶</button>
+                <button class="btn btn-outline-light btn-sm rounded-circle" onclick="nextSong()">⏭</button>
+            </div>
+            <div class="d-flex align-items-center w-100 gap-2">
+                <span id="current-time" class="text-white small">0:00</span>
+                <input type="range" id="player-progress" class="form-range flex-grow-1" value="0" style="height: 5px;">
+                <span id="total-duration" class="text-white small">0:00</span>
+            </div>
+        </div>
+
+        <!-- Volume/Extra (Optional placeholder) -->
+        <div style="width: 30%; text-align: right;">
+            <!-- Could add volume slider here later -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../static/js/script.js"></script>
+  
+  <!-- Playlist Player Logic -->
+  <script>
+    // Prepare Playlist Data from Jinja to JS
+    const playlistSongs = [
+        {% for song in songs %}
+        {
+            "title": {{ song.title | tojson }},
+            "artist": {{ song.artist | tojson }},
+            "file": {{ song.file | tojson }},
+            "image": {{ song.image | tojson }},
+            "id": {{ song.id | tojson }}
+        },
+        {% endfor %}
+    ];
+  </script>
+  <script src="../static/js/playlist_player.js"></script>
+
+</body>
+</html>

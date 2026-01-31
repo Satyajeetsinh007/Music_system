@@ -3,11 +3,11 @@ const playBtn = document.getElementById("playBtn");
 const progress = document.getElementById("progress");
 const playerBar = document.getElementById("playerBar");
 const imageWrapper = document.getElementById("imageWrapper");
-let song_time=document.getElementById("song-time");
-let song_length=document.getElementById("song_length")
+let song_time = document.getElementById("song-time");
+let song_length = document.getElementById("song_length")
 let heart = document.querySelector(".heart");
 const closeBtn = document.getElementById("closeSidebar");
-let empty=document.querySelector(".empty")
+let empty = document.querySelector(".empty")
 
 
 document.addEventListener("DOMContentLoaded", updateEmptyState);
@@ -16,8 +16,8 @@ function togglePlay() {
     audio.play();
     playBtn.textContent = "⏸";
     playerBar.classList.remove("hidden");
-    var time =formatTime(audio.duration)
-    song_length.innerText=time;
+    var time = formatTime(audio.duration)
+    song_length.innerText = time;
   } else {
     audio.pause();
     playBtn.textContent = "▶";
@@ -89,7 +89,14 @@ function updateSidebar(data) {
       <span>${song.title}</span>
     `;
 
-    sidebar.appendChild(a);
+    // Insert before the <hr> (separator between liked songs and playlists)
+    const separator = sidebar.querySelector("hr");
+    if (separator) {
+      sidebar.insertBefore(a, separator);
+    } else {
+      // Fallback if no hr found (shouldn't happen with current template)
+      sidebar.appendChild(a);
+    }
   }
 
   if (data.status === "unliked") {
@@ -101,12 +108,13 @@ function updateSidebar(data) {
 
 
 closeBtn.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-  });
-  
+  sidebar.classList.remove("open");
+});
+
 function updateEmptyState() {
   const sidebar = document.querySelector(".sidebar");
-  const items = sidebar.querySelectorAll(".sidebar-song");
+  // Only select items that have a data-id attribute (which distinguishes songs from playlists)
+  const items = sidebar.querySelectorAll(".sidebar-song[data-id]");
   const empty = sidebar.querySelector(".empty");
 
   if (items.length === 0) {
