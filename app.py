@@ -1,10 +1,12 @@
 import mysql.connector
 import random
-from flask import Flask, render_template,request,flash,redirect,url_for
-from flask import session
+from flask import Flask, render_template, request, flash, redirect, url_for, session
+import os
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "my-secret-key"
+
 
 db = mysql.connector.connect(
     host="localhost",
@@ -12,6 +14,19 @@ db = mysql.connector.connect(
     password="",      # default XAMPP password is empty
     database="music_db"
 )
+
+# Configuration
+UPLOAD_FOLDER = 'static/songs'
+IMAGE_FOLDER = 'static/images'
+ALLOWED_EXTENSIONS = {'mp3', 'wav', 'ogg'}
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['IMAGE_FOLDER'] = IMAGE_FOLDER
+
+# Helper to check file extension
+def allowed_file(filename, extensions):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
 
 @app.route("/mainapp")
 def home():
@@ -21,9 +36,10 @@ def home():
     user_id = session["user_id"]
 
     cursor = db.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM songs")
+    # Fetch 8 random songs for Quick Picks
+    cursor.execute("SELECT * FROM songs ORDER BY RAND() LIMIT 8")
     songs = cursor.fetchall()
-    if "user_id" not in session:  #doubt-->userid??
+    if "user_id" not in session:
         return redirect(url_for("login"))
 
     user_id = session["user_id"]
@@ -39,13 +55,34 @@ def home():
     cursor.execute("SELECT * FROM playlists WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
     playlists = cursor.fetchall()
 
+    # --- NEW: Fetch songs by language ---
+    language_sections = []
+    
+    # 1. Get all distinct languages
+    cursor.execute("SELECT DISTINCT language FROM songs WHERE language IS NOT NULL AND language != ''")
+    languages = [row['language'] for row in cursor.fetchall()]
+
+    for lang in languages:
+        # 2. For each language, fetch 4 random songs
+        # Using a fresh cursor or resetting logic if needed, but 'cursor' is fine here
+        cursor.execute("SELECT * FROM songs WHERE language=%s ORDER BY RAND() LIMIT 4", (lang,))
+        lang_songs = cursor.fetchall()
+        
+        if lang_songs:
+            language_sections.append({
+                "title": f"{lang} Songs", # e.g. "Hindi Songs"
+                "songs": lang_songs
+            })
+    # ------------------------------------
+
     cursor.close()
 
     return render_template(
         "index.html",
         songs=songs,
         liked_songs=liked_songs,
-        playlists=playlists
+        playlists=playlists,
+        language_sections=language_sections
     )
 
 @app.route("/", methods=["GET", "POST"])
@@ -100,8 +137,8 @@ def play_song(song_id):
     liked_songs = cursor.fetchall()
 
     cursor.execute(
-        "SELECT * FROM songs WHERE genre=%s AND id!=%s",
-        (song["genre"], song_id)
+        "SELECT * FROM songs WHERE language=%s AND id!=%s",
+        (song["language"], song_id)
     )
     related = cursor.fetchall()
 
@@ -358,7 +395,95 @@ def delete_playlist(playlist_id):
     
     return redirect(url_for("home"))
 
+@app.route("/admin", methods=["GET", "POST"])
+def admin_panel():
+    # 1. Handle Login
+    if request.method == "POST":
+        passkey = request.form.get("passkey")
+        if passkey == "admin123":
+            session["is_admin"] = True
+            return redirect(url_for("admin_panel"))
+        else:
+            flash("Incorrect Admin Passkey!", "error")
+            return redirect(url_for("admin_panel"))
+
+    # 2. Check Admin Session
+    if not session.get("is_admin"):
+        return render_template("admin.html", mode="login")
+
+    # 3. Show Dashboard
+    return render_template("admin.html", mode="dashboard")
+
+
+@app.route("/admin/add_song", methods=["POST"])
+def admin_add_song():
+    if not session.get("is_admin"):
+        return redirect(url_for("admin_panel"))
+
+    title = request.form.get("title")
+    artist = request.form.get("artist")
+    # genre = request.form.get("genre") # Removed
+    language = request.form.get("language")
+    
+    # File Handling
+    if 'image' not in request.files or 'song' not in request.files:
+        flash("No file part", "error")
+        return redirect(url_for("admin_panel"))
+
+    image_file = request.files['image']
+    song_file = request.files['song']
+
+    if image_file.filename == '' or song_file.filename == '':
+        flash("No selected file", "error")
+        return redirect(url_for("admin_panel"))
+
+    # Save Image
+    if image_file and allowed_file(image_file.filename, ALLOWED_IMAGE_EXTENSIONS):
+        image_filename = secure_filename(image_file.filename)
+        image_path = os.path.join(app.config['IMAGE_FOLDER'], image_filename)
+        image_file.save(image_path)
+    else:
+        flash("Invalid Image Format", "image_error")
+        return redirect(url_for("admin_panel"))
+
+    # Save Song
+    if song_file and allowed_file(song_file.filename, ALLOWED_EXTENSIONS):
+        song_filename = secure_filename(song_file.filename)
+        song_path = os.path.join(app.config['UPLOAD_FOLDER'], song_filename) #static/songs/<song_filename>
+        song_file.save(song_path)
+    else:
+        flash("Invalid Song Format (mp3, wav, ogg only)", "song_error")
+        return redirect(url_for("admin_panel"))
+
+    # Database Insert
+    cursor = db.cursor()
+    try:
+        # Note: 'genre' column in DB might still expect a value if not nullable/default?
+        # Assuming we just pass empty string or NULL if DB allows, OR we just stop querying it.
+        # But wait, if I remove 'genre' from INSERT, I must ensure current schema allows it.
+        # Previous schema didn't have default for genre probably.
+        # Let's keep a placeholder genre or modify schema?
+        # User asked "remove genre".
+        # Safest is to insert a default string "Unknown" for now to avoid DB error without migration.
+        
+        cursor.execute(
+            "INSERT INTO songs (title, artist, genre, language, file, image) VALUES (%s, %s, %s, %s, %s, %s)",
+            (title, artist, "Unknown", language, song_filename, image_filename)
+        )
+        db.commit()
+        flash("Song Added Successfully!", "success")
+    except Exception as e:
+        flash(f"Error adding song: {e}", "error")
+    finally:
+        cursor.close()
+
+    return redirect(url_for("admin_panel"))
+
 @app.route("/logout")
 def logout():
     session.clear()   # removes user_id, username, everything
     return redirect(url_for("login"))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
