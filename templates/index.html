@@ -37,7 +37,6 @@
 
 
     <!-- Right -->
-    <a class="btn btn-outline-light" href="#">Login</a>
     <a href="/logout" class="btn btn-outline-light">Logout</a>
   </div>
 </nav>
@@ -70,7 +69,7 @@
     <!-- Song Card -->
       {% for song in songs %}
         <div class="col-md-3 col-sm-6">
-          <div class="music-card">
+          <div class="music-card" onclick="location.href='/song/{{ song.id }}';" style="cursor: pointer;">
             <img
               src="{{ url_for('static', filename='images/' + song.image) }}"
               class="song-poster"
@@ -83,10 +82,10 @@
             </div>
 
             <div class="d-flex justify-content-between align-items-center mt-3">
-              <a href="/song/{{ song.id }}" class="btn btn-success btn-sm rounded-pill px-3">
+              <a href="/song/{{ song.id }}" class="btn btn-success btn-sm rounded-pill px-3" onclick="event.stopPropagation();">
                 ▶ Play
               </a>
-              <button class="btn btn-outline-light btn-sm rounded-circle" onclick="openAddToPlaylistModal('{{ song.id }}')" title="Add to Playlist">
+              <button class="btn btn-outline-light btn-sm rounded-circle" onclick="event.stopPropagation(); openAddToPlaylistModal('{{ song.id }}')" title="Add to Playlist">
                 ➕
               </button>
             </div>
@@ -111,27 +110,27 @@
     <div class="row g-4">
       {% for song in section.songs %}
         <div class="col-md-3 col-sm-6">
-          <div class="music-card">
-            <img
-              src="{{ url_for('static', filename='images/' + song.image) }}"
-              class="song-poster"
-              alt="{{ song.title }}"
-            >
+            <div class="music-card" onclick="location.href='/song/{{ song.id }}';" style="cursor: pointer;">
+              <img
+                src="{{ url_for('static', filename='images/' + song.image) }}"
+                class="song-poster"
+                alt="{{ song.title }}"
+              >
 
-            <div class="card-body">
-              <h5>{{ song.title }}</h5>
-              <p>{{ song.artist }}</p>
-            </div>
+              <div class="card-body">
+                <h5>{{ song.title }}</h5>
+                <p>{{ song.artist }}</p>
+              </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <a href="/song/{{ song.id }}" class="btn btn-success btn-sm rounded-pill px-3">
-                ▶ Play
-              </a>
-              <button class="btn btn-outline-light btn-sm rounded-circle" onclick="openAddToPlaylistModal('{{ song.id }}')" title="Add to Playlist">
-                ➕
-              </button>
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <a href="/song/{{ song.id }}" class="btn btn-success btn-sm rounded-pill px-3" onclick="event.stopPropagation();">
+                  ▶ Play
+                </a>
+                <button class="btn btn-outline-light btn-sm rounded-circle" onclick="event.stopPropagation(); openAddToPlaylistModal('{{ song.id }}')" title="Add to Playlist">
+                  ➕
+                </button>
+              </div>
             </div>
-          </div>
         </div>
       {% endfor %}
     </div>

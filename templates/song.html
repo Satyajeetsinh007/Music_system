@@ -15,6 +15,9 @@
       <button id="toggleSidebar" class="btn btn-outline-light position-absolute top-0 end-0">
       ❤️
       </button>
+      <a href="/mainapp" class="btn btn-outline-light position-absolute top-0 start-0 m-3">
+        ← Back
+      </a>
       <div class="container mt-5">
         <!-- Main Song Player -->
         <div class="f1">
@@ -34,7 +37,13 @@
                   data-id="{{ song.id }}">
                 </i>
               </h2>
-              <p>{{ song.artist }}</p>
+              <p>
+                {% for artist in song_artists %}
+                  <a href="{{ '/artist/' ~ artist.id if artist.id != '#' else '#' }}" class="text-white text-decoration-none">
+                    {{ artist.name }}
+                  </a>{{ ", " if not loop.last else "" }}
+                {% endfor %}
+              </p>
             </div>
 
           </div>

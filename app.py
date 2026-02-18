@@ -145,7 +145,19 @@ def play_song(song_id):
     cursor.execute("SELECT * FROM playlists WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
     playlists = cursor.fetchall()
 
-    return render_template("song.html", song=song, related_songs=related, liked=liked, liked_songs=liked_songs, playlists=playlists)
+    # Process artists for linking
+    artist_names = [a.strip() for a in song['artist'].split(',')]
+    song_artists = []
+    for name in artist_names:
+        cursor.execute("SELECT id FROM artists WHERE name = %s", (name,))
+        res = cursor.fetchone()
+        if res:
+            song_artists.append({'name': name, 'id': res['id']})
+        else:
+            # Fallback if artist distinct record not found (shouldn't happen ideally but good for safety)
+            song_artists.append({'name': name, 'id': '#'})
+
+    return render_template("song.html", song=song, related_songs=related, liked=liked, liked_songs=liked_songs, playlists=playlists, song_artists=song_artists)
 
 
 
@@ -186,16 +198,95 @@ def register():
 @app.route("/api/search")
 def api_search():
     query = request.args.get("q")
-
     cursor = db.cursor(dictionary=True)
+
+    # 1. Search Songs
     cursor.execute(
-        "SELECT id, title, artist, image FROM songs  WHERE title LIKE %s OR artist LIKE %s LIMIT 5",
+        "SELECT id, title, artist, image FROM songs WHERE title LIKE %s OR artist LIKE %s LIMIT 5",
         (f"%{query}%", f"%{query}%")
     )
     songs = cursor.fetchall()
+
+    # 2. Search Artists
+    cursor.execute(
+        "SELECT id, name, image FROM artists WHERE name LIKE %s LIMIT 5",
+        (f"%{query}%",)
+    )
+    artists = cursor.fetchall()
+    
+    # Enhance artists with API image
+    for artist in artists:
+        artist['image_url'] = get_artist_image_url(artist['name'])
+
     cursor.close()
 
-    return songs  # Flask auto converts to JSON
+    return {"songs": songs, "artists": artists}
+
+import requests
+
+# ... (existing imports)
+
+# Helper to get artist image from Deezer
+def get_artist_image_url(artist_name):
+    try:
+        response = requests.get(f"https://api.deezer.com/search/artist?q={artist_name}")
+        data = response.json()
+        if data and 'data' in data and len(data['data']) > 0:
+            return data['data'][0]['picture_xl'] # or picture_medium, picture_big
+    except Exception as e:
+        print(f"Error fetching artist image: {e}")
+    return None
+
+@app.route("/artist/<int:artist_id>")
+def artist_page(artist_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    user_id = session["user_id"]
+
+    cursor = db.cursor(dictionary=True)
+
+    # 1. Get Artist Details
+    cursor.execute("SELECT * FROM artists WHERE id=%s", (artist_id,))
+    artist = cursor.fetchone()
+
+    if not artist:
+        cursor.close()
+        return redirect(url_for("home"))
+        
+    # Fetch image from API (Real-time)
+    artist_image_url = get_artist_image_url(artist['name'])
+
+    # 2. Get Songs by this Artist (Multi-Artist Support)
+    # Fetch broadly using LIKE, then filter in Python for exact match
+    # This matches "Artist A", "Artist A, Artist B", "Artist B, Artist A"
+    cursor.execute("SELECT * FROM songs WHERE artist LIKE %s", (f"%{artist['name']}%",))
+    potential_songs = cursor.fetchall()
+    
+    songs = []
+    for s in potential_songs:
+        # Split song's artist string: "Artist A, Artist B" -> ["Artist A", "Artist B"]
+        song_artists = [a.strip() for a in s['artist'].split(',')]
+        if artist['name'] in song_artists:
+            songs.append(s)
+
+    # 3. Get Liked Songs (for sidebar/heart status)
+    cursor.execute("SELECT song_id FROM liked_songs WHERE user_id=%s", (user_id,))
+    liked_song_ids = [row['song_id'] for row in cursor.fetchall()]
+
+    # 4. Get Playlists (for sidebar)
+    cursor.execute("SELECT * FROM playlists WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
+    playlists = cursor.fetchall()
+
+    cursor.close()
+
+    return render_template(
+        "artist.html", 
+        artist=artist, 
+        songs=songs, 
+        liked_song_ids=liked_song_ids,
+        playlists=playlists,
+        artist_image_url=artist_image_url
+    )
 
 
 
@@ -272,7 +363,7 @@ def create_playlist():
         playlist_id = cursor.lastrowid
         db.commit()
         cursor.close()
-        flash("Playlist created!")
+        # flash("Playlist created!")
         return redirect(url_for("view_playlist", playlist_id=playlist_id))
         
     return redirect(url_for("home"))
@@ -361,7 +452,7 @@ def add_to_playlist(playlist_id, song_id):
     if request.is_json or request.args.get('format') == 'json':
         return {"status": status, "message": message}
     
-    flash(message)
+    # flash(message)
     return redirect(url_for("home"))
 
 @app.route("/remove_from_playlist/<int:playlist_id>/<int:song_id>", methods=["POST"])
@@ -458,18 +549,29 @@ def admin_add_song():
     # Database Insert
     cursor = db.cursor()
     try:
-        # Note: 'genre' column in DB might still expect a value if not nullable/default?
-        # Assuming we just pass empty string or NULL if DB allows, OR we just stop querying it.
-        # But wait, if I remove 'genre' from INSERT, I must ensure current schema allows it.
-        # Previous schema didn't have default for genre probably.
-        # Let's keep a placeholder genre or modify schema?
-        # User asked "remove genre".
-        # Safest is to insert a default string "Unknown" for now to avoid DB error without migration.
-        
+        # 1. Insert Song
         cursor.execute(
             "INSERT INTO songs (title, artist, genre, language, file, image) VALUES (%s, %s, %s, %s, %s, %s)",
             (title, artist, "Unknown", language, song_filename, image_filename)
         )
+        
+        # 2. Handle Multi-Artist Creation
+        # Split by comma and strip whitespace
+        artist_names = [a.strip() for a in artist.split(',')]
+        
+        for a_name in artist_names:
+            if not a_name: continue
+            
+            # Check if artist exists
+            cursor.execute("SELECT id FROM artists WHERE name=%s", (a_name,))
+            if not cursor.fetchone():
+                # Create new artist with default image
+                # Make sure you have a 'default_artist.png' in static/images or handle missing image in template
+                cursor.execute(
+                    "INSERT INTO artists (name, image) VALUES (%s, %s)",
+                    (a_name, "default_artist.png")
+                )
+
         db.commit()
         flash("Song Added Successfully!", "success")
     except Exception as e:

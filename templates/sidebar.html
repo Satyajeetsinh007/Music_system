@@ -1,10 +1,11 @@
-<div class="sidebar">
+<div class="sidebar" id="sidebar-content">
     <div class="sidebar-header">
         <h4>❤️ Liked Songs</h4>
         <button id="closeSidebar" class="close-btn">✕</button>
     </div>
   
 
+  <div id="liked-songs-list">
   {% if not liked_songs %}
     <p class="empty">No liked songs</p>
   {% endif %}
@@ -15,6 +16,7 @@
       <span>{{ s.title }}</span>
     </a>
   {% endfor %}
+  </div>
 
   <hr>
 
@@ -23,6 +25,7 @@
     <button class="add-playlist-btn" data-bs-toggle="modal" data-bs-target="#createPlaylistModal">➕</button>
   </div>
 
+  <div id="playlists-list">
   {% if playlists %}
     {% for p in playlists %}
     <a href="/playlist/{{ p.id }}" class="sidebar-song">
@@ -33,6 +36,7 @@
   {% else %}
     <p class="empty">No playlists yet</p>
   {% endif %}
+  </div>
 
   <hr>
   <a href="/admin" class="sidebar-song mt-3">
