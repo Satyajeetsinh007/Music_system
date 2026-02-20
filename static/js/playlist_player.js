@@ -146,11 +146,19 @@ audio.addEventListener('ended', nextSong);
 function updateActiveSongInList() {
     document.querySelectorAll('.list-group-item').forEach((item, idx) => {
         if (idx === currentSongIndex) {
-            item.classList.add('active-song'); // We'll add this class in CSS
-            item.style.backgroundColor = '#333'; // Inline fallback
+            item.classList.add('active-song'); // adds blue background to current song 
         } else {
             item.classList.remove('active-song');
             item.style.backgroundColor = '';
         }
     });
 }
+document.addEventListener("click", (e) => {
+    if (
+        sidebar.classList.contains("open") &&
+        !sidebar.contains(e.target) &&
+        !toggleBtn.contains(e.target)
+    ) {
+        sidebar.classList.remove("open");
+    }
+});

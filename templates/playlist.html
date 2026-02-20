@@ -26,7 +26,7 @@
 
       <!-- Playlist Header -->
       <section class="hero d-flex align-items-center mt-0 position-relative" style="height: 40vh; min-height: 300px;">
-        <button id="toggleSidebar" class="btn btn-outline-light position-absolute top-0 end-0">❤️</button>
+        <button id="toggleSidebar" class="btn btn-outline-light position-fixed end-0" style="top: 86px; z-index: 1000; margin-right: 10px;">❤️</button>
         <div class="container">
           <span class="badge bg-primary mb-2">Playlist</span>
           <h1 class="fw-bold display-4">{{ playlist.name }}</h1>
@@ -51,7 +51,7 @@
                  <img src="{{ url_for('static', filename='images/' + song.image) }}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
                  <div>
                     <h5 class="mb-0">{{ song.title }}</h5>
-                    <small class="text-muted">{{ song.artist }}</small>
+                    <small>{{ song.artist }}</small>
                  </div>
               </div>
               
@@ -78,13 +78,13 @@
   </div>
 
       <!-- Player Bar (Fixed Bottom) -->
-      <div id="player-bar" class="player-bar d-flex align-items-center justify-content-between px-4 py-2 bg-dark border-top border-secondary fixed-bottom" style="display: none !important;">
+      <div id="player-bar" class="player-bar d-flex align-items-center justify-content-evenly px-4 py-2 bg-dark border-top border-secondary fixed-bottom" style="display: none !important;">
         <!-- Song Info -->
         <div class="d-flex align-items-center gap-3" style="width: 30%;">
             <img id="player-image" src="" alt="Album Art" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
             <div class="text-truncate">
                 <h6 id="player-title" class="mb-0 text-white">Select a song</h6>
-                <small id="player-artist" class="text-muted">Artist</small>
+                <small id="player-artist" class="text-white">Artist</small>
             </div>
         </div>
 
@@ -102,10 +102,7 @@
             </div>
         </div>
 
-        <!-- Volume/Extra (Optional placeholder) -->
-        <div style="width: 30%; text-align: right;">
-            <!-- Could add volume slider here later -->
-        </div>
+
       </div>
 
     </div>

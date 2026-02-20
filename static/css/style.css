@@ -214,8 +214,8 @@ h2::after {
   border-radius: 20px;
   border: none;
   padding: 8px 15px;
-  background: #1a1a1a;
-  color: white;
+  background: white;
+  color: black
 }
 
 .search-input::placeholder {
@@ -337,7 +337,6 @@ h2::after {
 .empty {
   color: #555;
   font-size: 14px;
-  display: none;
 }
 
 .sidebar.open {

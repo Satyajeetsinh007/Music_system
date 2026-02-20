@@ -3,6 +3,7 @@ import random
 from flask import Flask, render_template, request, flash, redirect, url_for, session
 import os
 from werkzeug.utils import secure_filename
+import string
 
 app = Flask(__name__)
 app.secret_key = "my-secret-key"
@@ -24,14 +25,17 @@ ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['IMAGE_FOLDER'] = IMAGE_FOLDER
 
-# Helper to check file extension
+# Helps to check file extension
 def allowed_file(filename, extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensions
 
 @app.route("/mainapp")
 def home():
+    # if "user_id" not in session:
+    #     return {"status": "error", "message": "Not logged in"}
+
     if "user_id" not in session:
-        return {"status": "error", "message": "Not logged in"}
+        return redirect(url_for("login"))
 
     user_id = session["user_id"]
 
@@ -39,10 +43,9 @@ def home():
     # Fetch 8 random songs for Quick Picks
     cursor.execute("SELECT * FROM songs ORDER BY RAND() LIMIT 8")
     songs = cursor.fetchall()
-    if "user_id" not in session:
-        return redirect(url_for("login"))
+    
 
-    user_id = session["user_id"]
+    # user_id = session["user_id"]
 
     cursor.execute("""
         SELECT songs.*
@@ -55,7 +58,7 @@ def home():
     cursor.execute("SELECT * FROM playlists WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
     playlists = cursor.fetchall()
 
-    # --- NEW: Fetch songs by language ---
+    #  NEW: Fetch songs by language 
     language_sections = []
     
     # 1. Get all distinct languages
@@ -64,7 +67,6 @@ def home():
 
     for lang in languages:
         # 2. For each language, fetch 4 random songs
-        # Using a fresh cursor or resetting logic if needed, but 'cursor' is fine here
         cursor.execute("SELECT * FROM songs WHERE language=%s ORDER BY RAND() LIMIT 4", (lang,))
         lang_songs = cursor.fetchall()
         
@@ -73,7 +75,7 @@ def home():
                 "title": f"{lang} Songs", # e.g. "Hindi Songs"
                 "songs": lang_songs
             })
-    # ------------------------------------
+
 
     cursor.close()
 
@@ -102,7 +104,7 @@ def login():
 
         if user:
             # login successful
-            session["user_id"] = user["id"]   # ⭐ store in session
+            session["user_id"] = user["id"]   #  store in session
             session["username"] = user["username"]
             return redirect(url_for("home"))
         else:
@@ -145,7 +147,7 @@ def play_song(song_id):
     cursor.execute("SELECT * FROM playlists WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
     playlists = cursor.fetchall()
 
-    # Process artists for linking
+    # Splits artists for linking
     artist_names = [a.strip() for a in song['artist'].split(',')]
     song_artists = []
     for name in artist_names:
@@ -167,10 +169,31 @@ def register():
         username = request.form["username"]
         email = request.form["email"]
         password = request.form["password"]
+        confirm_pass=request.form["confirm_password"]
+
+        if password != confirm_pass:
+            flash("password and confirm password doesn't match!")
+            return redirect(url_for("register"))
+
+        # Check for spaces in password
+        if " " in password:
+            flash("Password must not contain spaces")
+            return redirect(url_for("register"))
+
+        # Check for Special Characters in password
+        flag=True
+        for i in string.punctuation:
+            if i in password:
+                flag=False
+                break
+
+        if flag:
+            flash("Must contain atleast one special character")
+            return redirect(url_for("register"))
 
         cursor = db.cursor(dictionary=True)
 
-        # 1. Check if user already exists
+        # 1. Check if email already exists
         cursor.execute(
             "SELECT * FROM users WHERE email=%s",
             (email,)
@@ -214,7 +237,7 @@ def api_search():
     )
     artists = cursor.fetchall()
     
-    # Enhance artists with API image
+    # Get artist API image
     for artist in artists:
         artist['image_url'] = get_artist_image_url(artist['name'])
 
@@ -224,9 +247,8 @@ def api_search():
 
 import requests
 
-# ... (existing imports)
 
-# Helper to get artist image from Deezer
+# to get artist image from Deezer api
 def get_artist_image_url(artist_name):
     try:
         response = requests.get(f"https://api.deezer.com/search/artist?q={artist_name}")
@@ -253,10 +275,10 @@ def artist_page(artist_id):
         cursor.close()
         return redirect(url_for("home"))
         
-    # Fetch image from API (Real-time)
+    # Fetch image from API (in Real-time)
     artist_image_url = get_artist_image_url(artist['name'])
 
-    # 2. Get Songs by this Artist (Multi-Artist Support)
+    # 2. Get Songs by this Artist
     # Fetch broadly using LIKE, then filter in Python for exact match
     # This matches "Artist A", "Artist A, Artist B", "Artist B, Artist A"
     cursor.execute("SELECT * FROM songs WHERE artist LIKE %s", (f"%{artist['name']}%",))
@@ -358,12 +380,21 @@ def create_playlist():
     name = request.form.get("name")
     
     if name:
-        cursor = db.cursor()
+        cursor = db.cursor(dictionary=True) 
+        
+        # Check if playlist already exists
+        cursor.execute("SELECT id FROM playlists WHERE user_id=%s AND name=%s", (user_id, name))
+        existing_playlist = cursor.fetchone()
+        
+        if existing_playlist:
+            cursor.close()
+            return redirect(url_for("view_playlist", playlist_id=existing_playlist['id']))
+            
+        # Create new if not exists
         cursor.execute("INSERT INTO playlists (user_id, name) VALUES (%s, %s)", (user_id, name))
         playlist_id = cursor.lastrowid
         db.commit()
         cursor.close()
-        # flash("Playlist created!")
         return redirect(url_for("view_playlist", playlist_id=playlist_id))
         
     return redirect(url_for("home"))
@@ -394,9 +425,7 @@ def view_playlist(playlist_id):
     """, (playlist_id,))
     songs = cursor.fetchall()
     
-    # Get all liked songs for sidebar consistency (optional, or we can just fetch all liked songs again)
-    # The user asked for "live sidebar updated via fetch + JS", but sidebar usually needs initial state.
-    # We'll just fetch liked songs for the layout if needed, but since sidebar is included, we should pass it.
+    # Get all liked songs for sidebar consistency
     cursor.execute("""
         SELECT songs.*
         FROM liked_songs
@@ -436,23 +465,11 @@ def add_to_playlist(playlist_id, song_id):
     try:
         cursor.execute("INSERT INTO playlist_songs (playlist_id, song_id) VALUES (%s, %s)", (playlist_id, song_id))
         db.commit()
-        status = "success"
-        message = "Song added to playlist"
     except mysql.connector.Error as err:
-        if err.errno == 1062: # Duplicate entry
-            status = "info"
-            message = "Song already in playlist"
-        else:
-            status = "error"
-            message = str(err)
+        print(err)
             
     cursor.close()
     
-    # Check if request is AJAX
-    if request.is_json or request.args.get('format') == 'json':
-        return {"status": status, "message": message}
-    
-    # flash(message)
     return redirect(url_for("home"))
 
 @app.route("/remove_from_playlist/<int:playlist_id>/<int:song_id>", methods=["POST"])

@@ -30,7 +30,13 @@ playBtn.addEventListener("click", (e) => {
   togglePlay();
 });
 
-imageWrapper.addEventListener("click", togglePlay);
+const songImage = document.getElementById("songImage");
+if (songImage) {
+  songImage.addEventListener("click", (e) => {
+    e.stopPropagation();
+    togglePlay();
+  });
+}
 
 function formatTime(time) {
   const min = Math.floor(time / 60);
@@ -72,11 +78,11 @@ toggleBtn.addEventListener("click", () => {
 });
 
 function updateSidebar(data) {
-  const sidebar = document.querySelector(".sidebar");
-
+  const list = document.getElementById("liked-songs-list");
+  if (!list) return;
   if (data.status === "liked") {
     // Prevent duplicates
-    if (sidebar.querySelector(`[data-id="${data.song.id}"]`)) return;
+    if (list.querySelector(`[data-id="${data.song.id}"]`)) return;
 
     const song = data.song;
     const a = document.createElement("a");
@@ -89,18 +95,11 @@ function updateSidebar(data) {
       <span>${song.title}</span>
     `;
 
-    // Insert before the <hr> (separator between liked songs and playlists)
-    const separator = sidebar.querySelector("hr");
-    if (separator) {
-      sidebar.insertBefore(a, separator);
-    } else {
-      // Fallback if no hr found (shouldn't happen with current template)
-      sidebar.appendChild(a);
-    }
+    list.appendChild(a);
   }
 
   if (data.status === "unliked") {
-    const el = sidebar.querySelector(`[data-id="${data.song_id}"]`);
+    const el = list.querySelector(`[data-id="${data.song_id}"]`);
     if (el) el.remove();
   }
   updateEmptyState();
@@ -112,14 +111,22 @@ closeBtn.addEventListener("click", () => {
 });
 
 function updateEmptyState() {
-  const sidebar = document.querySelector(".sidebar");
-  // Only select items that have a data-id attribute (which distinguishes songs from playlists)
-  const items = sidebar.querySelectorAll(".sidebar-song[data-id]");
-  const empty = sidebar.querySelector(".empty");
-
-  if (items.length === 0) {
-    empty.style.display = "block";
-  } else {
-    empty.style.display = "none";
+  const list = document.getElementById("liked-songs-list");
+  if (list) {
+    const items = list.querySelectorAll(".sidebar-song");
+    const empty = list.querySelector(".empty");
+    if (empty) {
+      empty.style.display = items.length === 0 ? "block" : "none";
+    }
   }
 }
+
+document.addEventListener("click", (e) => {
+  if (
+    sidebar.classList.contains("open") &&
+    !sidebar.contains(e.target) &&
+    !toggleBtn.contains(e.target)
+  ) {
+    sidebar.classList.remove("open");
+  }
+});

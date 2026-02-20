@@ -6,10 +6,7 @@
   
 
   <div id="liked-songs-list">
-  {% if not liked_songs %}
-    <p class="empty">No liked songs</p>
-  {% endif %}
-
+    <p class="empty" style="display: {% if liked_songs %}none{% else %}block{% endif %};">No liked songs</p>
   {% for s in liked_songs %}
     <a href="/song/{{ s.id }}"  class="sidebar-song" data-id="{{ s.id }}">
       <img src="{{ url_for('static', filename='images/' + s.image) }}">
@@ -26,16 +23,13 @@
   </div>
 
   <div id="playlists-list">
-  {% if playlists %}
+    <p class="empty" style="display: {% if playlists %}none{% else %}block{% endif %};">No playlists yet</p>
     {% for p in playlists %}
     <a href="/playlist/{{ p.id }}" class="sidebar-song">
         <span class="playlist-icon">🎵</span>
         <span>{{ p.name }}</span>
     </a>
     {% endfor %}
-  {% else %}
-    <p class="empty">No playlists yet</p>
-  {% endif %}
   </div>
 
   <hr>
